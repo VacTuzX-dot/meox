@@ -1,7 +1,7 @@
 ลง Debian 13
 > apt update && apt -y upgrade
 > หรือตั้งค่า sources.list
-> apt -y install nodejs npm docker.io openssh-server openssh-client ufw git
+> apt -y install nodejs npm docker.io docker-compose openssh-server openssh-client ufw git
 > config sshd_config
 (ถ้าเพื่อนทำvlanเสร็จไปconfig networkเป็นstatic)
 
@@ -31,5 +31,6 @@ grep ^Password /etc/gitlab/initial_root_password
 
 vm2 ลง docker.io กับ portainer
 docker volume create portainer_data
+
 
 docker run -d -p 8000:8000 -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
