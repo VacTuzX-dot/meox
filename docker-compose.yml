@@ -1,0 +1,154 @@
+# เริ่มมาทำยังไงก็ได้ให้ docker-compose.yml นี้ไปอยู่ใน VM1 อาจจะก็อปแล้วส่งมาทางฐานข้อมูลก็ได้
+# หลังจากนั้นรันคำสั่ง "docker compose up -d" แค่นี้ gitlab , gitlab-runner ก็ทำงานละ
+
+# ------------------------------------------------------------------------------
+
+# และเพื่อทำให้ Dev สามารถ push code มายัง gitlab ได้ ให้ Gen SSH key แบบ ED25519 จากเครื่อง dev มา
+# โดยใช้คำสั่ง "ssh-keygen -t ED25519 -C "อีเมล"" จะได้ไฟล์ .pub มาให้ก็อปมาทั้งหมด
+# และหาวิธีเอามันมาใส่ใน gitlab ของ VM1 ตรงเมนู SSH keys ให้ได้
+# แค่นี้ dev ก็สามารถ push code มายัง gitlab ได้อาจจะผ่าน ssh หรือ http ก็ได้
+
+# ------------------------------------------------------------------------------
+
+# ต่อมามาวุ่นเรื่อง VM1 VM2
+# โดยการที่ VM1 จะ SSH ไป VM2 ได้ต้องใช้ SSH keys แบบ RSA จาก VM1 ไปแปะไว้ที่ VM2 โดยวิธีการคือ
+# ใช้คำสั่ง "ssh-keygen -t rsa -b 4096" อันนี้ทำที่ VM1 นะ!!!!!!!! ซึ่งจะได้ไฟล์ id_rsa กับ id_rsa.pub เราจะใช้ทั้งคู่เลย
+# ไปเพิ่ม variables ที่ repo ใน gitlab โดย KEY ให้ชื่อว่า SSH_PRIVATE_KEY และ VALUE เป็นข้อความทั้งหมดจากไฟล์ id_rsa
+# และตั้งตัวแปรเป็นอันแรก (ชื่ออะไรไม่รู้จำไม่ได้) ไม่งั้นมันจะเพิ่ม variables ไม่ได้ หลังจากนั้นหาทางทำให้ข้อความใน id_rsa.pub
+# ไปอยู่บน VM2 ให้ได้ อาจจะก็อปแล้วส่งมาทางฐานข้อมูลก็ได้ ตอนนี้ไปที่ VM2 และจากนั้นใช้คำสั่ง "nano ~/.ssh/authorized_keys"
+# เอาข้อความใน id_rsa.pub ที่มาจาก VM1 ก็อปลงไปให้หมด จากนั้นเซฟไฟล์แค่นี้ก็จบละ
+# ลองใช้คำสั่ง "docker pull 192.168.10.20:5005/root/devops/frontend" ดูถ้ามัน pull ได้ก็คือจบ
+
+# ------------------------------------------------------------------------------
+
+# สำคัญมากให้ตั้งค่าไฟล์ daemon.json ถ้าไม่ทำจะติด https
+# ต้องบอก Docker Client ว่า "IP นี้ไว้ใจได้ ให้ใช้ HTTP ได้เลย" (Insecure Registry)
+# แก้ไข (หรือสร้าง) ไฟล์ config ของ Docker: ใช้คำสั่ง nano เปิดไฟล์ daemon.json
+# ใช้คำสั่ง "nano /etc/docker/daemon.json"
+# เพิ่มการตั้งค่า Insecure Registry ให้ใส่เนื้อหาตามนี้ลงไป (ถ้ามีข้อมูลเดิมอยู่แล้ว ให้แทรกบรรทัด insecure-registries เข้าไปให้ถูก format JSON)
+# ใส่เนื้อหาตามนี้ลงไป 
+# {
+#   "insecure-registries" : ["192.168.10.20:5005"]
+# }
+# อย่าลืมเซฟไฟล์ !!!!!!!!!!
+# ต่อไปให้รีสตาร์ท Docker เพื่อให้ค่าใหม่ทำงาน ต้องรีสตาร์ท service หนึ่งครั้ง
+# ใช้คำสั่ง "systemctl restart docker"
+# และต้องทำแบบนี้ทั้งใน VM1 และ VM2 !!!!!!!!!!!!!!!!!!!!!!!!
+
+# ------------------------------------------------------------------------------
+
+# หลังจากรันไฟล์นี้ต้อง register gitlab-runner กับ gitlab
+# ใช้คำสั่ง "docker exec -it gitlab-runner gitlab-runner register"
+# ถ้ามันถาม url ให้ใส่ "http://192.168.10.20" หรือ IP ของ VM1 แล้วมันจะถามหา token ให้ไปสร้าง runner มาซักตัวมันจะให้ token เราก็เอามาใส่
+# และมันจะถามชื่ออะไรซักอย่างให้ใส่ "docker" ต่อมามันจะถาม executor อันนี้สำคัญให้ใส่ "docker"
+# หลังจากนั้นมันจะถาม images อันนี้ก็สำคัญให้ใส่ไปว่า "docker:24.0.5" เป็นอันเสร็จ
+# หลังจากนั้นก็เข้าไปแก้ไฟล์ config.toml ของ gitlab-runner ตามตัวอย่างด้านล่างหลักๆจะมีอยู่ 4 จุด
+#   clone_url = "http://192.168.10.20" จุดที่ 1 อันนี้ให้เพิ่มไปต่อท้ายในหัวข้อ [[runners]]
+#   privileged = true จุดที่ 2 อันนี้จะมีอยู่แล้วแค่เปลื่ยนจาก false เป็น true
+#   volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"] จุดที่ 3 อันนี้ก็จะมีอยู่แล้วแต่จะมีแค่ "/cache" ได้ใส่ , และเพิ่ม "/var/run/docker.sock:/var/run/docker.sock" เข้าไปด้านหน้า
+#   network_mode = "gitlab-setup_gitlab-net" จุดที่ 4 ตรงนี้อาจจะเอาออกก็ได้ถ้าไม่ได้เก็บ docker-compose.yml ไว้ในโฟลเดอร์
+
+# ------------------------------------------------------------------------------
+
+# ตัวอย่างไฟล์ config.toml ของ gitlab-runner
+
+# concurrent = 1
+# check_interval = 0
+# shutdown_timeout = 0
+
+# [session_server]
+#   session_timeout = 1800
+
+# [[runners]]
+#   name = "docker"
+#   url = "http://192.168.10.20"
+#   id = 1
+#   token = "glrt-qV5k7SHo_7seWizZLOKLjW86MQp0OjEKdToxCw.01.1219yqr6y"
+#   token_obtained_at = 2025-11-19T03:51:10Z
+#   token_expires_at = 0001-01-01T00:00:00Z
+#   executor = "docker"
+  
+#   # [จุดที่ 1] สำคัญมาก! บอก Runner ว่าถ้าเจอ URL นี้ให้ใช้ชื่อ Container แทน localhost
+#   clone_url = "http://192.168.10.20"
+
+#   [runners.cache]
+#     MaxUploadedArchiveSize = 0
+#     [runners.cache.s3]
+#     [runners.cache.gcs]
+#     [runners.cache.azure]
+#   [runners.docker]
+#     tls_verify = false
+#     image = "docker:24.0.5"
+    
+#     # [จุดที่ 2] ต้องเปิดเป็น true เพื่อให้รันคำสั่ง Docker ใน Docker ได้ดีขึ้น
+#     privileged = true 
+    
+#     disable_entrypoint_overwrite = false
+#     oom_kill_disable = false
+#     disable_cache = false
+    
+#     # [จุดที่ 3] ต้องเพิ่ม /var/run/docker.sock เพื่อให้ Runner สั่ง Docker เครื่องแม่ได้
+#     volumes = ["/var/run/docker.sock:/var/run/docker.sock", "/cache"]
+    
+#     shm_size = 0
+#     network_mtu = 0
+    
+#     # [จุดที่ 4] ใส่ชื่อ Network ที่ได้จากคำสั่ง 'docker network ls'
+#     # ปกติจะเป็น 'ชื่อโฟลเดอร์_gitlab-net' เช่น 'my-gitlab_gitlab-net'
+#     network_mode = "gitlab-setup_gitlab-net"
+#     # ตรงนี้อาจจะเอาออกก็ได้ถ้าไม่ได้เก็บ docker-compose.yml ไว้ในโฟลเดอร์
+#     # ตัวอย่างเก็บ docker-compose.yml ไว้ในโฟลเดอร์ gitlab-setup
+#     # ถ้าไม่ได้เก็บไว้ในโฟลเดอร์รันใน root หรืออื่น ๆ เลยก็ไม่ต้องมีบรรทัดที่ 113
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    restart: always
+    hostname: '192.168.10.20'
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        # URL สำหรับเข้าหน้าเว็บ
+        external_url 'http://192.168.10.20'
+        
+        # ตั้งค่า Container Registry ผ่าน HTTP
+        registry_external_url 'http://192.168.10.20:5005'
+        gitlab_rails['registry_enabled'] = true
+        registry['enable'] = true
+        registry_nginx['listen_port'] = 5005
+        registry_nginx['listen_https'] = false
+        
+        # ปิดการ redirect ไป HTTPS
+        nginx['listen_https'] = false
+        registry_nginx['proxy_set_headers'] = { "X-Forwarded-Proto" => "http" }
+        
+        # ลดภาระเครื่อง (Optional: ปิด service ที่ไม่จำเป็นสำหรับ Dev)
+        prometheus_monitoring['enable'] = false
+    ports:
+      - '80:80'
+      - '443:443'
+      - '2222:22'   # SSH port (เลี่ยงการชนกับ port 22 ของเครื่อง)
+      - '5005:5005' # Registry port
+    volumes:
+      - './config:/etc/gitlab'
+      - './logs:/var/log/gitlab'
+      - './data:/var/opt/gitlab'
+    shm_size: '256m'
+    networks:
+      - gitlab-net
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      - gitlab
+    volumes:
+      - './runner-config:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock' # ให้ Runner สั่ง Docker ได้ (Docker-in-Docker แบบ Socket)
+    networks:
+      - gitlab-net
+
+networks:
+  gitlab-net:
+    driver: bridge
