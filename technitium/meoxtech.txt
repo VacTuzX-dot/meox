@@ -1,0 +1,35 @@
+sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+sudo micro /etc/systemd/resolved.conf
+
+[Resolve]
+DNS=172.16.3.101 10.97.4.1 8.8.8.8 1.1.1.1
+# FallbackDNS= (ถ้ามีบรรทัดนี้ ใส่ # ข้างหน้าเพื่อปิดการใช้งาน หรือลบทิ้ง)
+# Domains=
+# LLMNR=no
+# MulticastDNS=no
+# DNSSEC=no
+# DNSOverTLS=no
+# Cache=no
+DNSStubListener=no
+
+sudo systemctl restart systemd-resolved
+
+cat /etc/resolv.conf
+
+nameserver 192.168.10.xx
+nameserver 10.97.4.1
+nameserver 8.8.8.8
+search .
+
+docker volume create dns_config
+
+# 1. ปิด DNS Service เดิมของเครื่องที่จอง Port 53 อยู่
+sudo systemctl stop systemd-resolved
+sudo systemctl disable systemd-resolved
+
+# 2. แก้ไฟล์ resolv.conf ให้ชั่วคราว (เพื่อให้เครื่องยังออกเน็ตไปโหลด Docker Image ได้)
+sudo rm /etc/resolv.conf
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf
