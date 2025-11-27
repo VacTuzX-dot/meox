@@ -2,11 +2,12 @@
 > apt update && apt -y upgrade
 > หรือตั้งค่า sources.list
 > apt -y install nodejs npm docker.io docker-compose openssh-server openssh-client ufw git curl
+> git clone https://github.com/vactuzx-dot/meox
 > config etc/ssh/sshd_config
 (ถ้าเพื่อนทำvlanเสร็จไปconfig networkเป็นstatic)
 auto ens18
 iface ens18 inet static
-    address 192.168.10.20/24
+    address 192.168.10.100/24
     gateway 192.168.10.1
 
 ufw enable
@@ -23,9 +24,8 @@ ufw allow 8080/tcp
 ufw allow 9443/tcp
 ufw status
 
+#ทำทั้ง2VM
 micro /etc/docker/daemon.json
 {
-    "insecure-registries": ["192.168.10.30:5005"]
+    "insecure-registries": ["192.168.10.200:5005"]
 }
-
-micro /etc/
