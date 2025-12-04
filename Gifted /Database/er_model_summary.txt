@@ -1,0 +1,242 @@
+สรุป ER Model และการแปลงเป็น Relational Schema (เอาแต่ใจความสำคัญ)
+
+----------------------------------------
+1. ภาพรวมกระบวนการออกแบบฐานข้อมูล
+----------------------------------------
+ขั้นตอนหลักของการออกแบบฐานข้อมูล:
+1) เก็บและวิเคราะห์ความต้องการ (Requirements)
+2) ออกแบบเชิงแนวคิดด้วย ER Diagram (Conceptual Design)
+3) แปลงเป็น Logical Schema (เช่น Relational Schema แบบตาราง)
+4) ออกแบบเชิงกายภาพ (Physical Design) บน DBMS จริง
+
+ER Diagram อยู่ในขั้น Conceptual Design = วาดภาพโลกจริงให้เข้าใจก่อนนำไปทำเป็นตารางจริงในฐานข้อมูล
+
+----------------------------------------
+2. องค์ประกอบของ ER Model
+----------------------------------------
+
+2.1 Entity
+- หมายถึง กลุ่ม “สิ่ง” ที่มีตัวตนและลักษณะร่วมกัน เช่น EMPLOYEE, DEPARTMENT, PROJECT
+- เขียนด้วยรูปสี่เหลี่ยม ชื่อ Entity อยู่ด้านใน
+- ชื่อควรเป็นคำนาม เอกพจน์ เช่น EMPLOYEE ไม่ใช่ EMPLOYEES
+
+ชนิดของ Entity:
+1) Strong Entity
+   - ระบุเอกลักษณ์ของตัวเองได้ด้วย Key ของตนเอง
+2) Weak Entity
+   - ระบุเอกลักษณ์จาก Attribute ของตัวเองอย่างเดียวไม่ได้
+   - ต้องใช้ Key ของ Entity อื่น (Owner) มาช่วยระบุตัว
+   - ถ้า Owner ถูกลบ Weak Entity ก็มักถูกลบไปด้วย
+   - มี Identifying Relationship เชื่อมกับ Owner
+
+ตัวอย่าง Weak Entity:
+- DEPENDENT (เช่น ลูก, คู่สมรสของพนักงาน) เป็น Weak Entity
+- ต้องใช้ EmpID จาก EMPLOYEE + ชื่อของ DEPENDENT เป็นตัวระบุ
+
+2.2 Attribute
+- หมายถึง คุณสมบัติของ Entity (หรือ Relationship) เช่น Firstname, Salary, Birthdate
+- ใช้วงรีเชื่อมออกจาก Entity
+- Key Attribute (Primary Key) ขีดเส้นใต้ เช่น EmpID, Ssn
+
+ประเภทของ Attribute:
+1) Simple / Atomic
+   - แบ่งย่อยไม่ได้ เช่น Firstname, Salary
+2) Composite
+   - แยกย่อยเป็นส่วนเล็ก ๆ ได้ เช่น Address แยกเป็น Street, City, Province, Postcode
+3) Single-valued
+   - มีค่าเดียวต่อแถว เช่น Gender
+4) Multivalued
+   - มีได้หลายค่าต่อแถว เช่น TelNo (เบอร์โทรหลายเบอร์)
+   - ใน ER ใช้วงรีคู่
+5) Stored Attribute
+   - เก็บตรง ๆ ในฐานข้อมูล เช่น Birthdate, Salary
+6) Derived Attribute
+   - คำนวณมาจาก Attribute อื่น เช่น Age (จาก Birthdate), Number_of_employees (นับจาก EMPLOYEE)
+   - มักเขียนด้วยวงรีเส้นประ
+
+2.3 Relationship
+- หมายถึง ความสัมพันธ์ระหว่าง Entity สองตัวขึ้นไป
+- เขียนด้วยรูปข้าวหลามตัด (เพชร) เช่น WORKS_FOR, MANAGES, CONTROLS
+- ชื่อ Relationship มักเป็น “กริยา” เช่น WORKS_FOR, MANAGES, WORKS_ON
+- Relationship เองก็มี Attribute ได้ เช่น
+  - Hour: จำนวนชั่วโมงที่พนักงานใช้ทำงานในโปรเจกต์ (ใน WORKS_ON)
+  - StartDate: วันที่พนักงานเริ่มเป็นผู้จัดการแผนก (ใน MANAGES)
+
+Degree ของ Relationship:
+- Binary Relationship: ระหว่าง 2 Entities (เจอบ่อยที่สุด)
+- Ternary / Quaternary: ระหว่าง 3, 4 Entities (แค่รู้ว่ามี)
+
+----------------------------------------
+3. Cardinality และ Participation
+----------------------------------------
+
+3.1 Cardinality Ratio (จำนวนสูงสุดที่เชื่อมกันได้)
+ใช้บอกว่า Entity ฝั่งหนึ่งสามารถเชื่อมกับอีกฝั่งได้กี่ตัว เช่น
+
+1) One-to-One (1:1)
+   - Entity A เชื่อมกับ Entity B ได้สูงสุด 1 ตัว และกลับกัน
+   - ตัวอย่าง: EMPLOYEE (ในบทบาท Manager) MANAGES DEPARTMENT
+   - หนึ่งแผนกมีผู้จัดการได้ 1 คน และหนึ่งคนเป็นผู้จัดการได้ 0 หรือ 1 แผนก
+
+2) One-to-Many (1:N)
+   - ฝั่งหนึ่ง (1) เชื่อมได้หลายตัวในอีกฝั่ง (N)
+   - แต่ฝั่ง N เชื่อมกลับได้สูงสุด 1 ตัวในฝั่ง 1
+   - ตัวอย่าง: DEPARTMENT CONTROLS PROJECT
+       - หนึ่ง DEPARTMENT คุมได้หลาย PROJECT
+       - แต่ละ PROJECT ถูกคุมได้โดย DEPARTMENT เดียว
+
+3) Many-to-Many (M:N)
+   - ทั้งสองฝั่งเชื่อมได้หลาย
+   - ตัวอย่าง: EMPLOYEE WORKS_ON PROJECT
+       - พนักงานหนึ่งคนทำหลายโปรเจกต์
+       - โปรเจกต์หนึ่งมีพนักงานหลายคน
+
+3.2 Participation Constraint (การบังคับว่าต้องเข้าร่วมไหม)
+- Total Participation
+  - เขียนด้วยเส้นคู่จาก Entity ไปยัง Relationship
+  - ทุก Entity ฝั่งนั้น “ต้อง” เข้าร่วมใน Relationship อย่างน้อย 1 ครั้ง
+  - ตัวอย่าง: ทุก PROJECT ต้องถูก CONTROLS โดย DEPARTMENT อย่างน้อยหนึ่งแผนก
+- Partial Participation
+  - เขียนด้วยเส้นเดี่ยว
+  - มีบาง Entity ที่อาจไม่เข้าร่วมใน Relationship เลยก็ได้
+  - ตัวอย่าง: ไม่ใช่ทุก EMPLOYEE จะเป็น MANAGER ของ DEPARTMENT
+
+----------------------------------------
+4. ขั้นตอนออกแบบ ER Diagram จากโจทย์
+----------------------------------------
+สรุปขั้นตอนหลัก ๆ:
+
+1) อ่าน Requirement แล้วหา Entity
+   - มักสังเกตจาก “คำนามสำคัญ” เช่น Employee, Department, Project, Dependent ฯลฯ
+2) เพิ่ม Attribute ให้แต่ละ Entity
+   - ข้อมูลที่ต้องเก็บ เช่น รหัส, ชื่อ, ที่อยู่, เงินเดือน ฯลฯ
+3) เลือก Primary Key ให้ทุก Entity
+4) หา Relationship ระหว่าง Entities
+   - เช่น EMPLOYEE WORKS_FOR DEPARTMENT
+   - EMPLOYEE WORKS_ON PROJECT
+   - EMPLOYEE MANAGES DEPARTMENT
+   - EMPLOYEE SUPERVISES EMPLOYEE
+   - DEPENDENT DEPENDENT_OF EMPLOYEE
+5) กำหนด Cardinality (1:1, 1:N, M:N) ของแต่ละ Relationship
+6) กำหนด Participation ว่า Total หรือ Partial
+7) ระบุ Weak Entity + Identifying Relationship (ถ้ามี)
+8) ใส่ Attribute ของ Relationship (ถ้ามี) เช่น Hour, StartDate, Relationship (ลูก, ภรรยา ฯลฯ)
+
+----------------------------------------
+5. สัญลักษณ์หลักใน ER Diagram
+----------------------------------------
+- สี่เหลี่ยมเดี่ยว: Strong Entity
+- สี่เหลี่ยมคู่: Weak Entity
+- วงรีเดี่ยว: Attribute
+- วงรีขีดเส้นใต้: Key Attribute (Primary Key)
+- วงรีคู่: Multivalued Attribute
+- วงรีเส้นประ: Derived Attribute
+- วงรีที่แยกย่อย: Composite Attribute
+- ข้าวหลามตัดเดี่ยว: Relationship
+- ข้าวหลามตัดหนา/คู่: Identifying Relationship (สำหรับ Weak Entity)
+- เส้นเดี่ยว/เส้นคู่: Partial / Total Participation
+- ตัวเลข/สัญลักษณ์ข้างเส้น: แสดง Cardinality เช่น 1, N, M หรือใช้ Notation อื่น เช่น Crow’s Foot / Min-Max / UML
+
+----------------------------------------
+6. การแปลง ER Diagram เป็น Relational Schema (ตาราง)
+----------------------------------------
+
+6.1 การแปลง Entity และ Attribute
+1) Strong Entity
+   - สร้างตาราง 1 ตารางต่อ 1 Entity
+   - Column = Attribute ทั้งหมด (ยกเว้น Derived)
+   - Primary Key = Key Attribute ของ Entity นั้น
+
+   ตัวอย่าง:
+   EMPLOYEE(EmpID, Fname, Minit, Lname, Bdate, Address, Sex, Salary, Super_ssn, Dno)
+
+2) Composite Attribute
+   - แตกเป็นคอลัมน์ย่อยในตาราง
+   - เช่น Address → Street, City, Province, Postcode
+
+3) Multivalued Attribute
+   - แยกออกเป็นตารางใหม่ 1 ตาราง
+   - Primary Key ของตารางใหม่ = (Primary Key ของ Entity เดิม + Attribute นั้น)
+   - ตัวอย่าง:
+     EMPLOYEE(EmpID, Name, ...)
+     EMPLOYEE_TELNO(EmpID, TelNo)
+
+4) Derived Attribute
+   - โดยปกติ “ไม่เก็บ” ในตารางพื้นฐาน
+   - ให้คำนวณตอน Query หรือใช้ View
+   - ตัวอย่าง: Age คำนวณจาก Birthdate
+
+6.2 การแปลง Relationship
+
+(1) One-to-One (1:1)
+- กรณีไม่มี Attribute ใน Relationship:
+  - เลือกหนึ่งฝั่งให้เก็บ Foreign Key ของอีกฝั่ง
+  - โดยทั่วไปเอา FK ไปไว้ฝั่งที่มี Total Participation หรือฝั่งที่เหมาะที่สุด
+
+- กรณีมี Attribute ใน Relationship:
+  - ใส่ Foreign Key + Attribute ของ Relationship ในตารางฝั่งที่รับ FK
+
+ตัวอย่าง MANAGES (EMPLOYEE MANAGES DEPARTMENT และมี Start_date):
+- วิธีที่ 1:
+  DEPARTMENT(DeptID, DeptName, ManagerID, Start_date)
+- วิธีที่ 2:
+  EMPLOYEE(EmpID, ..., DeptID, Start_date)
+(เลือกแบบที่เหมาะกับเงื่อนไขและความชัดเจน)
+
+(2) One-to-Many (1:N)
+- ให้ฝั่ง “Many (N)” เก็บ Foreign Key ของฝั่ง “One (1)”
+- ถ้ามี Attribute ของ Relationship ให้เก็บไว้ในฝั่ง N ด้วย
+
+ตัวอย่าง:
+- DEPARTMENT(DeptID, DeptName, ...)
+- EMPLOYEE(EmpID, Name, ..., DeptID, Start_date)
+
+DEPARTMENT : EMPLOYEE = 1:N
+- DeptID เป็น Primary Key ของ DEPARTMENT
+- DeptID ไปอยู่ใน EMPLOYEE เป็น Foreign Key
+
+(3) Many-to-Many (M:N)
+- ต้องสร้างตารางกลาง 1 ตาราง
+- Primary Key ของตารางกลาง = (Foreign Key จากทั้งสอง Entity) หรือจะเพิ่มคอลัมน์ id ใหม่ก็ได้
+- Attribute ของ Relationship ให้เก็บในตารางกลาง
+
+ตัวอย่าง WORKS_ON:
+- EMPLOYEE(EmpID, ...)
+- PROJECT(ProjID, ...)
+- WORKS_ON(EmpID, ProjID, Hours)
+
+WORKS_ON:
+- EmpID = FK ไป EMPLOYEE
+- ProjID = FK ไป PROJECT
+- Primary Key ของ WORKS_ON = (EmpID, ProjID)
+
+6.3 Weak Entity และ Identifying Relationship
+- สร้างตารางสำหรับ Weak Entity
+- Primary Key = (Primary Key ของ Owner Entity + Partial Key ของ Weak Entity)
+
+ตัวอย่าง:
+EMPLOYEE(EmpID, ...)
+DEPENDENT(EmpID, Dependent_name, Sex, Bdate, Relationship)
+
+- Owner = EMPLOYEE
+- Weak Entity = DEPENDENT
+- PK ของ DEPENDENT = (EmpID, Dependent_name)
+
+----------------------------------------
+7. Mindset จำง่าย ๆ
+----------------------------------------
+1) คิดภาพโลกจริงด้วย ER Diagram ก่อน
+   - หา Entity, Attribute, Relationship
+   - ใส่ Cardinality & Participation
+   - ระบุ Weak Entity / Multivalued / Derived ให้ชัด
+
+2) จากนั้นจึงแปลงเป็น Relational Schema (ตาราง)
+   - Entity → ตาราง
+   - Multivalued → ตารางแยก
+   - Derived → ไม่ต้องเก็บจริง (เว้นแต่มีเหตุผล)
+   - 1:1 → เลือกฝั่งเก็บ FK (พิจารณา Total Participation)
+   - 1:N → ฝั่ง N เก็บ FK ของฝั่ง 1
+   - M:N → สร้างตารางกลาง + FK ทั้งสองฝั่ง + Attribute ของ Relationship
+   - Weak Entity → ตารางที่ PK รวม Owner + Partial Key ของ Weak
+
+จบสรุปไฟล์ .txt (ฉบับเอาแต่ใจความสำคัญ แต่ยังละเอียดพออ่านก่อนสอบ/ทบทวนงานได้)
