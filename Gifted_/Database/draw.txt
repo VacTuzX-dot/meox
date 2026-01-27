@@ -1,0 +1,44 @@
+หมวด: Entity (ตัวตน)
+สิ่งที่ต้องการ	คำค้นใน draw.io
+Entity (ปกติ)	entity
+Weak Entity	weak entity
+ตาราง (Table)	table
+UML Class (ใช้แทน Entity ได้)	uml class
+🔶 หมวด: Attribute (คุณสมบัติ)
+ประเภท	คำค้น
+Attribute ปกติ	attribute หรือ oval
+Key Attribute (ขีดเส้นใต้)	key attribute
+Composite Attribute	composite attribute
+Multivalued Attribute (วงรีซ้อน)	multivalued
+Derived Attribute (เส้นปะ)	derived attribute
+วงรีเส้นปะทั่วไป	dashed oval
+🔺 หมวด: Relationship (ความสัมพันธ์)
+ความหมาย	คำค้น
+Relationship (ข้าวหลามตัด)	relationship หรือ diamond
+Identifying Relationship	identifying relationship
+ความสัมพันธ์ทั่วไป	er relationship
+🔁 หมวด: Cardinality / Constraint
+สิ่งที่ต้องการ	คำค้น
+1	1
+N	N
+เส้นคู่ (Total Participation)	double line
+เส้นเดียว (Partial)	single line
+Min-Max	min max
+(1,1), (0,N)	cardinality label
+🔷 หมวด: รูปแบบ ER Diagram สำเร็จรูป
+แบบ	คำค้น
+Chen Notation	Chen ERD
+Crow’s Foot	Crows Foot
+UML ER	UML ER
+Bachman	Bachman ER
+Min-Max	Min Max ER
+
+สูตรลัด (สายไว)
+
+ถ้าอยากได้ครบเซ็ตในครั้งเดียว ให้พิมพ์คำนี้เลย:
+
+ER Diagram
+
+หรือ
+
+Entity Relationship

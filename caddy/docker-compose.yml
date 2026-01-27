@@ -1,0 +1,51 @@
+# ขั้นตอนตามคู่มือ vecskill.bncc.ac.th (Caddy Internal CA) - คัดลอกวางได้ทันที
+# 1) เตรียมไฟล์ Caddy และโฟลเดอร์
+#    sudo mkdir -p /opt/caddy /var/log/caddy
+#    sudo micro /opt/caddy/Caddyfile  # ใส่ cert_issuer internal + reverse_proxy ตามบริการของคุณ
+# 2) เตรียม network/volume
+#    docker network create app_net
+#    docker volume create caddy_data
+#    docker volume create caddy_config
+#    sudo chown -R 100:101 /var/log/caddy   # ให้สิทธิ์ user caddy เขียน log (uid/gid 100:101 ใน image)
+# 3) รัน stack นี้
+#    docker compose -f caddy/docker-compose.yml up -d
+# 4) ดึง Root CA ไปแจกจ่ายให้ client
+#    docker cp caddy:/data/caddy/pki/authorities/local/root.crt /opt/caddy/caddy-root.crt
+# 5) ติดตั้ง Root CA บน Windows (รัน PowerShell แบบ Admin)
+#    Import-Certificate -FilePath "C:\\Users\\Public\\caddy-root.crt" -CertStoreLocation Cert:\\LocalMachine\\Root
+# cd /opt/caddy
+# python3 -m http.server 8000
+# Invoke-WebRequest http://192.168.10.20:8000/caddy-root.crt -OutFile C:\Users\<you>\Downloads\caddy-root.crt
+
+services:
+  caddy:
+    image: caddy:latest # ใช้เวอร์ชันล่าสุด หรือระบุเวอร์ชัน 2.x.x
+    container_name: caddy
+    restart: unless-stopped
+    networks:
+      - app_net
+    ports:
+      - "80:80" # สำหรับ Redirect HTTP -> HTTPS
+      - "443:443" # HTTPS หลัก
+      - "443:443/udp" # HTTP/3 (ถ้าต้องการ)
+    volumes:
+      # จุดสำคัญ: Mount Caddyfile จาก Host เข้าไปเป็น Read-Only
+      - /opt/caddy/Caddyfile:/etc/caddy/Caddyfile:ro # ต้องมีไฟล์นี้อยู่บน Host แล้ว
+      # Volume สำหรับเก็บ Certificate และข้อมูลอื่นๆ
+      - caddy_data:/data
+      # Volume สำหรับเก็บ Config และ Root CA
+      - caddy_config:/config
+      # Volume สำหรับเก็บ Log (สร้างโฟลเดอร์ /var/log/caddy บน Host ก่อน)
+      - /var/log/caddy:/var/log/caddy # ให้สิทธิ์เขียนแก่ user caddy ด้วย
+    environment:
+      - TZ=Asia/Bangkok # ตั้งค่า Timezone (แนะนำ)
+
+networks:
+  app_net:
+    external: true # ต้องมี network นี้อยู่แล้ว (docker network create app_net)
+
+volumes:
+  caddy_data:
+    external: true # ต้องมี volume นี้อยู่แล้ว (docker volume create caddy_data)
+  caddy_config:
+    external: true # ต้องมี volume นี้อยู่แล้ว (docker volume create caddy_config)

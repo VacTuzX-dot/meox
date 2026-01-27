@@ -1,0 +1,69 @@
+# === STEP 1: เข้า Root และอัปเดตเครื่อง ===
+su -
+apt update && apt -y upgrade
+apt -y install curl git ufw nano openssh-server
+
+# === STEP 2: ตั้งค่า Network (Static IP 192.168.10.250) ===
+# แก้ไขไฟล์ interfaces
+micro /etc/network/interfaces
+
+# --- (เนื้อหาที่ต้องแก้ในไฟล์ interfaces) ---
+# auto lo
+# iface lo inet loopback
+#
+# auto ens18
+# iface ens18 inet static
+#     address 192.168.10.250/24
+#     gateway 192.168.10.1
+#     # ใส่ Google DNS ชั่วคราวเพื่อให้โหลดของได้
+#     dns-nameservers 8.8.8.8 1.1.1.1
+# ----------------------------------------
+# Save (Ctrl+S) -> Quit (Ctrl+Q)
+
+# รีสตาร์ทเน็ตเวิร์ค
+systemctl restart networking
+
+# === STEP 3: สร้าง User ใหม่ (เกณฑ์ห้ามใช้ Root SSH) [cite: 209] ===
+adduser admin01
+# (ตั้งรหัสผ่าน)
+apt -y install sudo
+usermod -aG sudo admin01
+
+# === STEP 4: ปิด Service ที่ชนกับ DNS Server (สำคัญมาก) ===
+# ต้องปิด systemd-resolved เพื่อให้ Technitium DNS ใช้ Port 53 ได้
+systemctl stop systemd-resolved
+systemctl disable systemd-resolved
+rm /etc/resolv.conf
+echo "nameserver 8.8.8.8" > /etc/resolv.conf
+
+# === STEP 5: ติดตั้ง Node.js v18 (ตามเกณฑ์ข้อ 3.2.5.1) [cite: 52, 120] ===
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs
+node -v  # เช็คเวอร์ชัน (ต้องขึ้น v18.x.x)
+
+# === STEP 6: ติดตั้ง Docker และ Compose [cite: 50, 172] ===
+apt -y install docker.io docker-compose-plugin
+systemctl enable --now docker
+
+# ให้ user admin01 ใช้ docker ได้โดยไม่ต้อง sudo
+usermod -aG docker admin01
+
+# === STEP 7: ตั้งค่า Firewall (UFW) ===
+ufw default deny incoming
+ufw allow ssh
+ufw allow 80/tcp        # Web
+ufw allow 443/tcp       # HTTPS
+ufw allow 53            # DNS (TCP/UDP)
+ufw allow 5380/tcp      # Technitium Web Console
+ufw allow 5000/tcp      # Docker Registry
+ufw allow 1883/tcp      # MQTT
+ufw allow 1880/tcp      # Node-RED
+ufw allow 9001/tcp      # MQTT Websocket
+ufw enable
+# ตอบ y เพื่อยืนยัน
+
+# === STEP 8: สร้างโฟลเดอร์สำหรับโปรเจกต์ ===
+mkdir -p /opt/devops-stack
+cd /opt/devops-stack
+# สร้างไฟล์ docker-compose.yml ในขั้นตอนต่อไป
+micro docker-compose.yml

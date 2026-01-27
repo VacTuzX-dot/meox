@@ -1,0 +1,46 @@
+{
+    # ใช้ Internal CA ของ Caddy สำหรับทุกโดเมนในไฟล์นี้
+    cert_issuer internal
+}
+
+# ชื่อโซน: group1.vec
+# ตัวอย่างบันทึก A/AAAA ที่ DNS ต้องชี้ (Technitium)
+#   dns.group1.vec     -> 192.168.10.30
+#   app.group1.vec     -> 192.168.10.30   (เว็บที่เสิร์ฟผ่าน nginx)
+#   gitlab.group1.vec  -> 192.168.10.20
+
+# Technitium DNS (Web Admin บน 5380, ใช้ self-signed)
+dns.group1.vec {
+    tls internal
+    encode zstd gzip
+    log {
+        output file /var/log/caddy/technitium_access.log
+    }
+    reverse_proxy https://192.168.10.30:5380 {
+        transport http {
+            tls_insecure_skip_verify # ข้ามเพราะ upstream มี cert self-signed
+        }
+    }
+}
+
+# เว็บที่รันบน nginx (HTTP ที่ 192.168.10.30:80)
+app.group1.vec {
+    tls internal
+    encode zstd gzip
+    log {
+        output file /var/log/caddy/app_access.log
+    }
+    reverse_proxy http://192.168.10.30:3000
+}
+
+# GitLab (HTTP ที่ 192.168.10.20:80)
+gitlab.group1.vec {
+    tls internal
+    encode zstd gzip
+    log {
+        output file /var/log/caddy/gitlab_access.log
+    }
+    reverse_proxy http://192.168.10.20:80 {
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

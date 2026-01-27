@@ -1,0 +1,22 @@
+networks:
+  app_net:
+    driver: bridge
+
+services:
+  technitium-dns:
+    image: technitium/dns-server:latest
+    container_name: technitium-dns
+    hostname: itcmtc.com
+    restart: unless-stopped
+    environment:
+      - DNS_SERVER_DOMAIN=itcmtc.com
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+      - "5380:5380/tcp"
+    volumes:
+      - ./dns_config:/etc/dns
+    networks:
+      - app_net
+    cap_add:
+      - NET_ADMIN

@@ -1,0 +1,145 @@
+docker volume create portainer_data
+
+docker run -d -p 9443:9443 --name portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce:latest
+
+sudo mkdir -p /opt/caddy
+
+sudo micro /opt/caddy/Caddyfile
+
+{
+	# สั่งให้ Caddy ใช้ CA ภายในสำหรับทุกโดเมนในไฟล์นี้
+	cert_issuer internal
+	# auto_https on  # เปิดใช้งาน HTTPS อัตโนมัติ (เป็นค่าเริ่มต้นอยู่แล้ว)
+}
+
+# ---------- Technitium DNS (Web Admin) ----------
+dns.vecskill.ovec {
+	tls internal # บอกให้ใช้ Certificate จาก Internal CA
+	encode zstd gzip
+	reverse_proxy http://technitium-dns:5380
+}
+
+# ---------- Portainer ----------
+# (ตัวอย่างนี้สำหรับ Portainer ที่รันบน HTTPS Port 9443)
+portainer.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	reverse_proxy https://portainer:9443 {
+		transport http {
+			tls_insecure_skip_verify # จำเป็นเพราะ Certificate ของ Portainer เป็น Self-signed
+		}
+	}
+}
+
+# ---------- Docker Registry (Distribution v2) ----------
+registry.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	header Docker-Distribution-Api-Version "registry/2.0" # Header เฉพาะของ Registry
+	reverse_proxy http://registry:5000 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# ---------- Registry UI ----------
+registry-ui.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	reverse_proxy http://registry-ui:80 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# ---------- NPM (Verdaccio - สมมติว่ามี Container ชื่อ verdaccio) ----------
+npm.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000;"
+	log {
+		output file /var/log/caddy/npm_access.log
+	}
+	reverse_proxy http://verdaccio:4873
+}
+
+# ---------- PyPI (devpi - สมมติว่ามี Container ชื่อ devpi) ----------
+pypi.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	reverse_proxy http://devpi:3141 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Outside-Url {scheme}://{host} # Header เฉพาะของ devpi
+	}
+}
+
+# ---------- APT cacher (สมมติว่ามี Container ชื่อ aptcacher) ----------
+apt.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	reverse_proxy http://aptcacher:3142
+}
+
+# ---------- GitLab ----------
+gitlab.vecskill.ovec {
+	tls internal
+	encode zstd gzip
+	header Strict-Transport-Security "max-age=31536000;"
+	log {
+		output file /var/log/caddy/gitlab_access.log
+	}
+	reverse_proxy http://gitlab:80 {
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+docker volume create caddy_data
+docker volume create caddy_config
+
+sudo mkdir -p /var/log/caddy
+
+services:
+  caddy:
+    image: caddy:latest # ใช้เวอร์ชันล่าสุด หรือระบุเวอร์ชัน 2.x.x
+    container_name: caddy
+    restart: unless-stopped
+    networks:
+      - app_net
+    ports:
+      - "80:80"       # สำหรับ Redirect HTTP -> HTTPS
+      - "443:443"     # HTTPS หลัก
+      - "443:443/udp" # HTTP/3 (ถ้าต้องการ)
+    volumes:
+      # จุดสำคัญ: Mount Caddyfile จาก Host เข้าไปเป็น Read-Only
+      - /opt/caddy/Caddyfile:/etc/caddy/Caddyfile:ro 
+      # Volume สำหรับเก็บ Certificate และข้อมูลอื่นๆ
+      - caddy_data:/data 
+      # Volume สำหรับเก็บ Config และ Root CA
+      - caddy_config:/config 
+      # Volume สำหรับเก็บ Log (สร้างโฟลเดอร์ /var/log/caddy บน Host ก่อน)
+      - /var/log/caddy:/var/log/caddy 
+    environment:
+      - TZ=Asia/Bangkok # ตั้งค่า Timezone (แนะนำ)
+
+networks:
+  app_net:
+    external: true
+    
+volumes:
+  caddy_data:
+    external: true
+  caddy_config:
+    external: true
+
+
+docker cp caddy:/data/caddy/pki/authorities/local/root.crt /opt/caddy/caddy-root.crt
+          sudo chmod 644 /opt/caddy/caddy-root.crt
+
+คัดลอกไฟล์ `caddy-root.crt` ไปยังเครื่อง Client:
+ใช้วิธีใดก็ได้ที่คุณสะดวก (เช่น SCP, USB Drive) เพื่อนำไฟล์นี้ไปไว้บนเครื่องคอมพิวเตอร์ของคุณ (ตัวอย่าง: วางไว้ที่ C:\Users\Public\caddy-root.crt บน Windows)
+
+Import-Certificate -FilePath "C:\Users\Public\caddy-root.crt" -CertStoreLocation Cert:\LocalMachine\Root
+
+# วิธีที่ 1: ใช้ certutil (อาจจะต้องติดตั้ง)
+certutil -store -enterprise Root | findstr /I "Caddy Local Authority"
+
+# วิธีที่ 2: ใช้ Get-ChildItem (แนะนำ)
+Get-ChildItem Cert:\LocalMachine\Root | Where-Object Subject -like "*Caddy Local Authority*" | Select-Object Subject, Thumbprint, NotAfter
