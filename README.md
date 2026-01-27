@@ -258,13 +258,13 @@ systemctl status docker
 
 ```bash
 # สร้าง user ใหม่
-adduser admin
+adduser devops
 
 # เพิ่มสิทธิ์ sudo
-usermod -aG sudo admin
+usermod -aG sudo devops
 
 # เพิ่มสิทธิ์ใช้ docker
-usermod -aG docker admin
+usermod -aG docker devops
 
 # (Optional) ตั้งค่าให้ใช้ sudo ไม่ต้องใส่รหัสผ่าน
 visudo
@@ -273,7 +273,7 @@ visudo
 เพิ่มบรรทัด:
 
 ```ini
-admin ALL=(ALL) NOPASSWD: ALL
+devops ALL=(ALL) NOPASSWD: ALL
 ```
 
 ### Step 1.10: สร้างไฟล์ docker-compose.yml สำหรับ GitLab
@@ -476,7 +476,7 @@ cat ~/.ssh/id_rsa.pub
 
 ```bash
 # ทำบน VM1
-ssh-copy-id admin@192.168.10.30
+ssh-copy-id devops@192.168.10.30
 ```
 
 **[วิธีที่ 2] Manual**
@@ -497,7 +497,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 ```bash
 # ทำบน VM1
-ssh admin@192.168.10.30
+ssh devops@192.168.10.30
 # ควรเข้าได้โดยไม่ต้องใส่รหัสผ่าน
 ```
 
@@ -940,7 +940,7 @@ deploy-production:
     - ssh-keyscan -H 192.168.10.30 >> ~/.ssh/known_hosts
   script:
     - |
-      ssh admin@192.168.10.30 << EOF
+      ssh devops@192.168.10.30 << EOF
         docker pull $IMAGE_NAME:latest
         docker stop myapp || true
         docker rm myapp || true
@@ -1058,7 +1058,7 @@ docker pull 192.168.10.20:5005/root/sample-app:latest
 
 ```bash
 # ทำบน VM1
-ssh admin@192.168.10.30
+ssh devops@192.168.10.30
 ```
 
 ควรเข้าได้โดยไม่ต้องใส่รหัสผ่าน [✓]
@@ -1194,7 +1194,7 @@ docker cp caddy:/data/caddy/pki/authorities/local/root.crt /tmp/caddy-root.crt
 # ต้องมี SSH_PRIVATE_KEY
 
 # ทดสอบ SSH จาก VM1
-ssh admin@192.168.10.30
+ssh devops@192.168.10.30
 
 # ตรวจสอบ authorized_keys บน VM2
 cat ~/.ssh/authorized_keys
