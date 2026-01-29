@@ -108,9 +108,8 @@ services:
     restart: always
     hostname: "192.168.10.20"
     environment:
-
-      GITLAB_ROOT_PASSWORD: 'itcmtc1234'
-      GITLAB_ROOT_EMAIL: 'taweesaknumma@gmail.com'
+      GITLAB_ROOT_PASSWORD: "itcmtc1234"
+      GITLAB_ROOT_EMAIL: "taweesaknumma@gmail.com"
 
       GITLAB_OMNIBUS_CONFIG: |
         # URL สำหรับเข้าหน้าเว็บ
@@ -138,7 +137,7 @@ services:
       - "./config:/etc/gitlab"
       - "./logs:/var/log/gitlab"
       - "./data:/var/opt/gitlab"
-    shm_size: "256m"
+    shm_size: "1g"
     networks:
       - gitlab-net
 

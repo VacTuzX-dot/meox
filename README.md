@@ -1,7 +1,9 @@
 # [>] GitLab CI/CD + DNS + HTTPS - Complete Setup Guide
+
 > คู่มือฉบับสมบูรณ์: ตั้งแต่ติดตั้ง Debian, GitLab CI/CD, DNS Server (Technitium), ไปจนถึง HTTPS (Caddy)
 
 ## [#] Table of Contents
+
 - [Overview](#-overview)
 - [Prerequisites](#-prerequisites)
 - [Part 1: VM1 Setup (GitLab Server)](#part-1-vm1-setup-gitlab-server)
@@ -21,10 +23,12 @@
 โปรเจกต์นี้สร้างระบบ DevOps แบบสมบูรณ์ประกอบด้วย:
 
 ### Infrastructure Components
+
 - **VM1 (192.168.10.20)**: GitLab Server + GitLab Runner + Container Registry
 - **VM2 (192.168.10.30)**: Production Server + DNS Server (Technitium) + Reverse Proxy (Caddy)
 
 ### Key Features
+
 - [x] GitLab CE สำหรับ Source Control
 - [x] GitLab Runner สำหรับ CI/CD
 - [x] Container Registry สำหรับเก็บ Docker Images
@@ -33,6 +37,7 @@
 - [x] Automated Deployment Pipeline
 
 ### Architecture Diagram
+
 ```
                     ┌────────────────────────────┐
                     │   Developer Machine        │
@@ -83,26 +88,29 @@
 ## [+] Prerequisites
 
 ### System Requirements
-| Component | Requirement |
-|-----------|------------|
-| **OS** | Debian 13 (Bookworm) |
-| **RAM** | VM1: 4GB+ (แนะนำ 8GB), VM2: 2GB+ |
-| **Storage** | VM1: 30GB+, VM2: 20GB+ |
-| **Network** | 2 VMs ในเครือข่าย VLAN เดียวกัน |
+
+| Component   | Requirement                      |
+| ----------- | -------------------------------- |
+| **OS**      | Debian 13 (Bookworm)             |
+| **RAM**     | VM1: 4GB+ (แนะนำ 8GB), VM2: 2GB+ |
+| **Storage** | VM1: 30GB+, VM2: 20GB+           |
+| **Network** | 2 VMs ในเครือข่าย VLAN เดียวกัน  |
 
 ### IP Address Plan
-| Server | IP Address | Hostname | Services |
-|--------|------------|----------|----------|
-| VM1 | 192.168.10.20 | gitlab | GitLab, Runner, Registry |
-| VM2 | 192.168.10.30 | production | Apps, DNS, Caddy |
-| Gateway | 192.168.10.1 | - | Default GW |
+
+| Server  | IP Address    | Hostname   | Services                 |
+| ------- | ------------- | ---------- | ------------------------ |
+| VM1     | 192.168.10.20 | gitlab     | GitLab, Runner, Registry |
+| VM2     | 192.168.10.30 | production | Apps, DNS, Caddy         |
+| Gateway | 192.168.10.1  | -          | Default GW               |
 
 ### Domain Plan (DNS Internal)
-| Domain | IP | Service |
-|--------|-----|---------|
-| gitlab.group1.vec | 192.168.10.20 | GitLab Web UI |
-| dns.group1.vec | 192.168.10.30 | Technitium Web UI |
-| app.group1.vec | 192.168.10.30 | Production Apps |
+
+| Domain            | IP            | Service           |
+| ----------------- | ------------- | ----------------- |
+| gitlab.group1.vec | 192.168.10.20 | GitLab Web UI     |
+| dns.group1.vec    | 192.168.10.30 | Technitium Web UI |
+| app.group1.vec    | 192.168.10.30 | Production Apps   |
 
 ---
 
@@ -241,7 +249,7 @@ nano /etc/docker/daemon.json
 
 ```json
 {
-    "insecure-registries": ["192.168.10.20:5005"]
+  "insecure-registries": ["192.168.10.20:5005"]
 }
 ```
 
@@ -293,9 +301,8 @@ services:
     restart: always
     hostname: "192.168.10.20"
     environment:
-
-      GITLAB_ROOT_PASSWORD: 'itcmtc1234'
-      GITLAB_ROOT_EMAIL: 'taweesaknumma@gmail.com'
+      GITLAB_ROOT_PASSWORD: "itcmtc1234"
+      GITLAB_ROOT_EMAIL: "taweesaknumma@gmail.com"
 
       GITLAB_OMNIBUS_CONFIG: |
         # URL สำหรับเข้าหน้าเว็บ
@@ -391,7 +398,7 @@ iface ens18 inet static
 
 ```json
 {
-    "insecure-registries": ["192.168.10.20:5005"]
+  "insecure-registries": ["192.168.10.20:5005"]
 }
 ```
 
@@ -669,11 +676,11 @@ docker logs -f technitium-dns
 
 **เพิ่ม DNS Records:**
 
-| Record Type | Name | Value |
-|-------------|------|-------|
-| A | gitlab.group1.vec | 192.168.10.20 |
-| A | dns.group1.vec | 192.168.10.30 |
-| A | app.group1.vec | 192.168.10.30 |
+| Record Type | Name              | Value         |
+| ----------- | ----------------- | ------------- |
+| A           | gitlab.group1.vec | 192.168.10.20 |
+| A           | dns.group1.vec    | 192.168.10.30 |
+| A           | app.group1.vec    | 192.168.10.30 |
 
 ### Step 5.6: ตั้งค่า Client ให้ใช้ DNS Server
 
@@ -995,23 +1002,23 @@ CMD ["node", "index.js"]
 **ไฟล์: `index.js`**
 
 ```javascript
-const express = require('express');
+const express = require("express");
 const app = express();
 const PORT = 3000;
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.json({
-    message: 'Hello from CI/CD Pipeline!',
+    message: "Hello from CI/CD Pipeline!",
     version: process.env.npm_package_version,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy' });
+app.get("/health", (req, res) => {
+  res.json({ status: "healthy" });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 ```
@@ -1025,6 +1032,7 @@ git push origin main
 ```
 
 ตรวจสอบ Pipeline ใน GitLab:
+
 - **CI/CD → Pipelines**
 
 ### Step 7.3: ตรวจสอบผลลัพธ์
@@ -1079,6 +1087,7 @@ dig gitlab.group1.vec
 ### 4. ทดสอบ HTTPS
 
 เปิดเบราว์เซอร์:
+
 - `https://gitlab.group1.vec` [✓]
 - `https://dns.group1.vec` [✓]
 - `https://app.group1.vec` [✓]
@@ -1257,31 +1266,31 @@ host <domain>                       # Both
 
 ### Important Files & Locations
 
-| File/Directory | Description |
-|----------------|-------------|
-| `/etc/docker/daemon.json` | Docker daemon configuration |
-| `/etc/gitlab-runner/config.toml` | GitLab Runner configuration |
-| `/opt/caddy/Caddyfile` | Caddy reverse proxy config |
-| `/etc/resolv.conf` | DNS resolver config |
-| `/etc/network/interfaces` | Network configuration |
-| `./config/` | GitLab configuration files |
-| `./data/` | GitLab data (repos, uploads) |
-| `./logs/` | GitLab logs |
-| `/var/log/caddy/` | Caddy access logs |
+| File/Directory                   | Description                  |
+| -------------------------------- | ---------------------------- |
+| `/etc/docker/daemon.json`        | Docker daemon configuration  |
+| `/etc/gitlab-runner/config.toml` | GitLab Runner configuration  |
+| `/opt/caddy/Caddyfile`           | Caddy reverse proxy config   |
+| `/etc/resolv.conf`               | DNS resolver config          |
+| `/etc/network/interfaces`        | Network configuration        |
+| `./config/`                      | GitLab configuration files   |
+| `./data/`                        | GitLab data (repos, uploads) |
+| `./logs/`                        | GitLab logs                  |
+| `/var/log/caddy/`                | Caddy access logs            |
 
 ### Port Reference
 
-| Port | Service | Protocol |
-|------|---------|----------|
-| 22 | SSH | TCP |
-| 53 | DNS | TCP/UDP |
-| 80 | HTTP | TCP |
-| 443 | HTTPS | TCP/UDP |
-| 2222 | GitLab SSH | TCP |
-| 3000 | Sample App | TCP |
-| 5005 | GitLab Registry | TCP |
-| 5380 | Technitium Web UI | TCP |
-| 9443 | Portainer | TCP |
+| Port | Service           | Protocol |
+| ---- | ----------------- | -------- |
+| 22   | SSH               | TCP      |
+| 53   | DNS               | TCP/UDP  |
+| 80   | HTTP              | TCP      |
+| 443  | HTTPS             | TCP/UDP  |
+| 2222 | GitLab SSH        | TCP      |
+| 3000 | Sample App        | TCP      |
+| 5005 | GitLab Registry   | TCP      |
+| 5380 | Technitium Web UI | TCP      |
+| 9443 | Portainer         | TCP      |
 
 ---
 
