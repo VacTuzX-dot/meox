@@ -50,3 +50,5 @@ sudo deluser --remove-home <name>
 visudo
 
 <name> ALL=(ALL) NOPASSWD: ALL
+
+docker compose up -d --force-recreate --build
